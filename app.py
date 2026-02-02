@@ -8,145 +8,131 @@ from utils import (
     parche_bypass_root, eliminar_librerias_ads
 )
 
-# 1. CONFIGURACIÓN DE PÁGINA
-st.set_page_config(page_title="APK Lab Expert", layout="wide", page_icon="🛡️")
+# 1. MÁXIMA LEGIBILIDAD (Fondo Blanco, Texto Negro)
+st.set_page_config(page_title="APK Expert", layout="wide")
 
-# 2. ESTILO DE ALTO CONTRASTE (Legibilidad Mejorada)
 st.markdown("""
     <style>
-    .stApp { background-color: #1a1c24; color: #ffffff; }
-    h1, h2, h3 { color: #00ff88 !important; }
-    .stTabs [data-baseweb="tab-list"] { background-color: #262730; padding: 10px; border-radius: 10px; }
-    .stTabs [data-baseweb="tab"] { color: #ffffff !important; font-weight: bold; }
-    .stTabs [aria-selected="true"] { background-color: #00ff88 !important; color: #000000 !important; }
-    .stButton>button { width: 100%; background-color: #2ea043; color: white; font-weight: bold; border-radius: 8px; }
-    section[data-testid="stSidebar"] { background-color: #262730 !important; border-right: 2px solid #00ff88; }
+    /* Fondo blanco puro y texto negro para que no sufran tus ojos */
+    .stApp { background-color: #FFFFFF; color: #000000; }
+    h1, h2, h3, p, span, label { color: #000000 !important; font-weight: bold !important; }
+    
+    /* Pestañas grandes y claras */
+    .stTabs [data-baseweb="tab-list"] { background-color: #f0f2f6; border-radius: 10px; }
+    .stTabs [data-baseweb="tab"] { font-size: 18px !important; padding: 10px 20px; }
+    
+    /* Botones verdes muy visibles */
+    .stButton>button { 
+        background-color: #008000 !important; 
+        color: white !important; 
+        border-radius: 10px; 
+        height: 50px;
+        font-size: 20px !important;
+    }
+    
+    /* Editor de código con fondo crema (descansa la vista) */
+    .ace_editor { border: 3px solid #000000 !important; }
     </style>
     """, unsafe_allow_html=True)
 
 if 'carpeta_trabajo' not in st.session_state:
     st.session_state.carpeta_trabajo = None
 
-st.title("🛡️ LABORATORIO APK EXPERT")
+st.title("🛡️ LABORATORIO APK: MODO SEGURO")
 
-# --- BARRA LATERAL ---
+# --- PANEL LATERAL ---
 with st.sidebar:
     st.header("📂 ARCHIVO")
-    archivo = st.file_uploader("Subir APK", type="apk")
-    if archivo and st.button("▶️ INICIAR ANÁLISIS"):
+    archivo = st.file_uploader("Sube tu APK", type="apk")
+    if archivo and st.button("▶️ ANALIZAR APK"):
         tmp = tempfile.mkdtemp()
         ruta_apk = os.path.join(tmp, "base.apk")
         with open(ruta_apk, "wb") as f: f.write(archivo.getbuffer())
-        with st.spinner("Decompilando..."):
+        with st.spinner("Procesando..."):
             salida = os.path.join(tmp, "work")
             if decompilar_apk(ruta_apk, salida)[0]:
                 st.session_state.carpeta_trabajo = salida
-                st.success("✅ APK CARGADA")
+                st.success("✅ CARGADA")
 
-# --- PANEL PRINCIPAL ---
+# --- PANEL CENTRAL ---
 if st.session_state.carpeta_trabajo:
-    info = obtener_info_basica(st.session_state.carpeta_trabajo)
-    st.warning(f"📦 APP: {info['package']} | VERSIÓN: {info['version']}")
-
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "🛡️ PRIVACIDAD", "🧠 PARCHES", "👥 CLONAR", "🎨 DISEÑO", "📝 EDITOR IDE"
+        "🛡️ PRIVACIDAD", "🧠 PARCHES", "👥 CLONAR", "🎨 DISEÑO", "📝 EDITOR"
     ])
 
-    # Pestañas de herramientas rápidas (Se mantienen igual)
+    # Simplificamos las pestañas 1-4 para ahorrar memoria
     with tab1:
-        st.subheader("LIMPIAR PUBLICIDAD")
-        if st.button("🧹 EJECUTAR LIMPIEZA"):
-            exito, cant = eliminar_librerias_ads(st.session_state.carpeta_trabajo)
-            st.success(f"¡Hecho! Se eliminaron {cant} elementos.")
+        if st.button("🧹 QUITAR ANUNCIOS"):
+            eliminar_librerias_ads(st.session_state.carpeta_trabajo)
+            st.success("Limpieza lista")
 
     with tab2:
-        st.subheader("MODIFICAR FUNCIONES")
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("📸 PERMITIR CAPTURAS"):
-                parche_permitir_capturas(st.session_state.carpeta_trabajo)
-                st.success("✅ Hecho")
-        with c2:
-            if st.button("🛡️ BYPASS SEGURIDAD"):
-                parche_bypass_root(st.session_state.carpeta_trabajo)
-                st.success("✅ Hecho")
+        if st.button("📸 ACTIVAR CAPTURAS"):
+            parche_permitir_capturas(st.session_state.carpeta_trabajo)
+            st.success("Parche aplicado")
 
     with tab3:
-        st.subheader("CLONAR")
-        nuevo_id = st.text_input("Nuevo ID:", value=info['package'] + ".clon")
+        nuevo_id = st.text_input("Nuevo ID:", value="com.app.clon")
         if st.button("🧬 CLONAR"):
-            if clonar_app(st.session_state.carpeta_trabajo, nuevo_id):
-                st.success("✅ ID Cambiado")
-                st.rerun()
+            clonar_app(st.session_state.carpeta_trabajo, nuevo_id)
+            st.success("ID Cambiado")
 
     with tab4:
-        st.subheader("ESTÉTICA")
         if st.button("🌍 TRADUCIR A ESPAÑOL"):
             traducir_textos_app(st.session_state.carpeta_trabajo)
-            st.success("✅ Traducido")
-        
-        ico = st.file_uploader("Nuevo icono PNG", type=["png"])
-        if ico and st.button("🎨 APLICAR ICONO"):
-            cambiar_icono_app(st.session_state.carpeta_trabajo, ico)
-            st.success("✅ Actualizado")
+            st.success("Traducido")
 
-    # --- EL EDITOR REPARADO (SIN CUELGUES) ---
+    # --- EL EDITOR "ANTIFREEEZE" (NUNCA SE CUELGA) ---
     with tab5:
-        st.subheader("📂 EXPLORADOR DE PROYECTO")
-        
-        # Obtenemos la ruta actual (empezamos en la raíz)
+        st.subheader("📝 EDITOR DE ARCHIVOS")
         base = st.session_state.carpeta_trabajo
         
-        col_nav, col_edit = st.columns([1, 2])
-
-        with col_nav:
-            # Filtro de carpetas para no saturar
-            carpetas = [d for d in os.listdir(base) if os.path.isdir(os.path.join(base, d))]
-            folder_sel = st.selectbox("1. Selecciona Carpeta:", ["Raíz"] + sorted(carpetas))
+        # En lugar de mostrar carpetas, usamos un buscador de texto directo
+        # Esto evita cargar miles de elementos visuales
+        search = st.text_input("🔍 Escribe el nombre del archivo (ej: strings o manifest):", "strings.xml")
+        
+        # Buscamos solo los primeros 50 resultados para no colapsar el navegador
+        todos = listar_archivos(base)
+        coincidencias = [f for f in todos if search.lower() in f.lower()][:50]
+        
+        if coincidencias:
+            # Usamos selectbox en lugar de radio para máxima velocidad
+            archivo_sel = st.selectbox("📂 Selecciona el archivo para editar:", coincidencias)
             
-            ruta_actual = base if folder_sel == "Raíz" else os.path.join(base, folder_sel)
-            
-            # Listamos archivos de ESA carpeta solamente
-            archivos = [f for f in os.listdir(ruta_actual) if os.path.isfile(os.path.join(ruta_actual, f))]
-            
-            # Buscador solo para esta carpeta
-            busqueda = st.text_input("🔍 Buscar archivo aquí:", "")
-            filtrados = [f for f in archivos if busqueda.lower() in f.lower()]
-            
-            archivo_sel = st.radio("2. Selecciona Archivo:", sorted(filtrados))
-
-        with col_edit:
             if archivo_sel:
-                ruta_f = os.path.join(ruta_actual, archivo_sel)
-                st.code(f"📄 {archivo_sel}")
-                
+                ruta_f = os.path.join(base, archivo_sel)
                 try:
                     with open(ruta_f, "r", errors="ignore") as f:
                         code = f.read()
                     
+                    st.write(f"✍️ Editando: `{archivo_sel}`")
+                    
+                    # Editor Ace con tema claro para leer mejor
                     nuevo_code = st_ace(
                         value=code,
-                        language="xml" if archivo_sel.endswith(".xml") else "java",
-                        theme="monokai",
-                        height=500,
-                        font_size=16,
-                        key=f"editor_{folder_sel}_{archivo_sel}"
+                        language="xml" if ".xml" in archivo_sel else "java",
+                        theme="chrome", # Tema blanco profesional
+                        height=400,
+                        font_size=18, # Letra muy grande
+                        key=f"ed_{archivo_sel}"
                     )
                     
                     if nuevo_code != code:
                         with open(ruta_f, "w", errors="ignore") as f:
                             f.write(nuevo_code)
-                        st.toast("💾 GUARDADO")
+                        st.toast("✅ GUARDADO")
                 except:
-                    st.error("Archivo binario (no editable)")
+                    st.error("No se puede abrir este archivo.")
+        else:
+            st.warning("No se encontraron archivos con ese nombre.")
 
     st.divider()
     if st.button("📦 GENERAR APK FINAL"):
         with st.spinner("Compilando..."):
-            nombre = "app_modificada.apk"
+            nombre = "app_final.apk"
             if compilar_y_firmar(st.session_state.carpeta_trabajo, nombre)[0]:
                 with open(nombre, "rb") as f:
                     st.download_button("📥 DESCARGAR APK", f, file_name=nombre)
                 st.balloons()
 else:
-    st.info("👋 BIENVENIDO. CARGA UNA APK PARA EMPEZAR.")
+    st.info("Carga una APK a la izquierda para ver las opciones.")
