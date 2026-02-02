@@ -1,127 +1,142 @@
 import streamlit as st
 from streamlit_ace import st_ace
-import os
-import tempfile
-import shutil
+import os, tempfile
 from utils import (
     decompilar_apk, compilar_y_firmar, listar_archivos, 
-    extraer_permisos, buscar_imagenes, buscar_texto_en_archivos
+    obtener_info_basica, traducir_textos_app,
+    cambiar_icono_app, clonar_app, parche_permitir_capturas, 
+    parche_bypass_root, eliminar_librerias_ads
 )
 
-# Configuración de la página
-st.set_page_config(page_title="APK Lab Expert", layout="wide", page_icon="🛡️")
+st.set_page_config(page_title="APK Privacy Suite", layout="wide", page_icon="🛡️")
 
-# Estilo personalizado
 st.markdown("""
     <style>
-    .main { background-color: #0e1117; }
-    .stTabs [data-baseweb="tab-list"] { gap: 15px; }
-    .stTabs [data-baseweb="tab"] { background-color: #1e2129; border-radius: 5px; color: white; padding: 10px 20px; }
+    .stApp { background-color: #0d1117; color: #c9d1d9; }
+    .stTabs [data-baseweb="tab"] { font-size: 16px; color: #58a6ff; background-color: #161b22; margin-right: 5px; border-radius: 5px; }
+    .stButton>button { border: 1px solid #30363d; background-color: #238636; color: white; font-weight: bold; }
+    .stButton>button:hover { background-color: #2ea043; }
+    .metric-container { background-color: #161b22; padding: 15px; border-radius: 10px; border: 1px solid #30363d; }
     </style>
-    """, unsafe_allow_value=True)
+    """, unsafe_allow_html=True)
 
 if 'carpeta_trabajo' not in st.session_state:
     st.session_state.carpeta_trabajo = None
 
-st.title("🛡️ APK Lab: Plataforma de Ingeniería Inversa")
+st.title("🛡️ APK Lab: Suite de Privacidad y Modificación")
+st.caption("Herramienta ética para análisis, limpieza y personalización de aplicaciones Android.")
 
 # --- BARRA LATERAL ---
 with st.sidebar:
-    st.header("📂 Carga de Archivos")
-    archivo_subido = st.file_uploader("Sube tu archivo APK", type="apk")
-    
-    if archivo_subido and st.button("🚀 Desmontar APK"):
-        directorio_tmp = tempfile.mkdtemp()
-        ruta_apk = os.path.join(directorio_tmp, "original.apk")
-        with open(ruta_apk, "wb") as f:
-            f.write(archivo_subido.getbuffer())
-        
-        with st.spinner("Procesando..."):
-            salida = os.path.join(directorio_tmp, "proyecto")
-            exito, mensaje = decompilar_apk(ruta_apk, salida)
-            if exito:
+    st.header("🛠️ Laboratorio")
+    archivo = st.file_uploader("Cargar APK (Solo uso ético)", type="apk")
+    if archivo and st.button("🚀 Analizar y Desmontar"):
+        tmp = tempfile.mkdtemp()
+        ruta = os.path.join(tmp, "base.apk")
+        with open(ruta, "wb") as f: f.write(archivo.getbuffer())
+        with st.spinner("Ingeniería inversa en proceso... (Esto puede tardar en apps grandes)"):
+            salida = os.path.join(tmp, "work")
+            # He añadido el flag -r en utils.py para que sea más estable con apps complejas
+            if decompilar_apk(ruta, salida)[0]:
                 st.session_state.carpeta_trabajo = salida
-                st.success("¡Listos para trabajar!")
+                st.success("APK lista para modificar.")
             else:
-                st.error(f"Error: {mensaje}")
+                st.error("Error al decompilar. Algunas apps están protegidas contra esto.")
 
-# --- CONTENIDO PRINCIPAL ---
+# --- AREA DE TRABAJO ---
 if st.session_state.carpeta_trabajo:
-    # Ahora tenemos 4 pestañas
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "📝 Editor", "🔍 Seguridad", "🖼️ Imágenes", "🔎 Buscador"
+    info = obtener_info_basica(st.session_state.carpeta_trabajo)
+    st.markdown(f"""<div class="metric-container">
+        <b>Objetivo:</b> {info['package']} | <b>Versión:</b> {info['version']}
+        </div>""", unsafe_allow_html=True)
+    st.write("") # Espacio
+
+    # PESTAÑAS REORGANIZADAS
+    tab_privacy, tab_hacks, tab_clone, tab_reskin, tab_edit = st.tabs([
+        "🛡️ Privacidad y Limpieza", "🧠 Parches de Comportamiento", "👥 Clonación", "🎨 Personalización", "📝 Editor Avanzado"
     ])
 
-    # PESTAÑA 1: EDITOR
-    with tab1:
-        col_files, col_code = st.columns([1, 3])
-        with col_files:
-            todos_archivos = listar_archivos(st.session_state.carpeta_trabajo)
-            seleccion = st.selectbox("Archivo actual:", todos_archivos)
+    # PESTAÑA 1: LA NUEVA JOYA DE LA CORONA
+    with tab_privacy:
+        st.subheader("Limpiador de Rastreadores y Publicidad")
+        st.write("Este módulo busca y elimina las librerías de código conocidas por mostrar publicidad y rastrear usuarios.")
+        st.info("💡 Ideal para aligerar apps gratuitas cargadas de anuncios.")
         
-        with col_code:
-            ruta_archivo = os.path.join(st.session_state.carpeta_trabajo, seleccion)
-            with open(ruta_archivo, "r", errors="ignore") as f:
-                contenido = f.read()
-            idioma = "xml" if seleccion.endswith(".xml") else "java"
-            nuevo_texto = st_ace(value=contenido, language=idioma, theme="monokai", height=500)
-            if nuevo_texto != contenido:
-                with open(ruta_archivo, "w") as f:
-                    f.write(nuevo_texto)
-                st.toast("Guardado", icon="💾")
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.warning("⚠️ Advertencia: Eliminar estas librerías puede hacer que algunas apps inestables se cierren. Úsalo bajo tu propio riesgo.")
+        with col2:
+             if st.button("🧹 EJECUTAR LIMPIEZA DE ADS", type="primary"):
+                with st.spinner("Escaneando y eliminando basura..."):
+                    exito, cantidad = eliminar_librerias_ads(st.session_state.carpeta_trabajo)
+                    if exito:
+                        st.success(f"¡Éxito! Se han eliminado {cantidad} carpetas de SDKs de publicidad.")
+                        st.balloons()
+                    else:
+                        st.warning("No se encontraron librerías de publicidad conocidas en esta app.")
 
-    # PESTAÑA 2: SEGURIDAD
-    with tab2:
-        st.subheader("Permisos Detectados")
-        lista_p = extraer_permisos(st.session_state.carpeta_trabajo)
-        for p in lista_p:
-            if any(x in p.upper() for x in ["CAMERA", "SMS", "LOCATION", "CONTACTS"]):
-                st.error(f"⚠️ SENSIBLE: {p}")
-            else:
-                st.info(f"✅ {p}")
+    # PESTAÑA 2: HACKS ÉTICOS (Capturas y Root)
+    with tab_hacks:
+        st.subheader("Modificaciones de Comportamiento")
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("📸 Permitir Capturas de Pantalla (Bypass FLAG_SECURE)"):
+                if parche_permitir_capturas(st.session_state.carpeta_trabajo):
+                    st.success("Protección eliminada. Ahora puedes hacer capturas en apps privadas.")
+                else: st.warning("No se detectó la protección de pantalla.")
+        with c2:
+            if st.button("🛡️ Ocultar Root/Emulador"):
+                if parche_bypass_root(st.session_state.carpeta_trabajo):
+                    st.success("Parche aplicado. La app creerá que el entorno es seguro.")
 
-    # PESTAÑA 3: IMÁGENES
-    with tab3:
-        st.subheader("Galería de Recursos")
-        fotos = buscar_imagenes(st.session_state.carpeta_trabajo)
-        if fotos:
-            columnas = st.columns(5)
-            for i, r in enumerate(fotos[:50]):
-                with columnas[i % 5]:
-                    st.image(r, use_container_width=True)
-        else:
-            st.write("No hay imágenes.")
+    # PESTAÑA 3: CLONACIÓN
+    with tab_clone:
+        st.subheader("Duplicador de Aplicaciones")
+        nid = st.text_input("Nuevo ID de paquete:", value=info['package'] + ".dual")
+        if st.button("🧬 Crear Clon"):
+            with st.spinner("Clonando identidad..."):
+                if clonar_app(st.session_state.carpeta_trabajo, nid):
+                    st.success(f"Identidad cambiada a {nid}. Ya puedes compilar el clon.")
+                    st.experimental_rerun()
 
-    # PESTAÑA 4: BUSCADOR (NUEVA)
-    with tab4:
-        st.subheader("🔎 Buscador de Código")
-        st.write("Busca textos específicos en todos los archivos del proyecto.")
-        
-        termino = st.text_input("¿Qué quieres buscar? (ej: 'http', 'API_KEY', 'password')")
-        
-        if termino:
-            if len(termino) < 3:
-                st.warning("Escribe al menos 3 letras.")
-            else:
-                encontrados = buscar_texto_en_archivos(st.session_state.carpeta_trabajo, termino)
-                if encontrados:
-                    st.success(f"Se encontraron {len(encontrados)} coincidencias.")
-                    for item in encontrados[:100]: # Mostramos los primeros 100
-                        with st.expander(f"📄 {item['archivo']} - Línea {item['linea']}"):
-                            st.code(item['contenido'])
-                else:
-                    st.info("No se encontró nada con ese nombre.")
+    # PESTAÑA 4: RESKIN & TRADUCCIÓN
+    with tab_reskin:
+        c1, c2 = st.columns(2)
+        with c1:
+            st.write("🌍 **Traducción Automática (IA)**")
+            if st.button("Traducir Inglés -> Español"):
+                with st.spinner("Traduciendo..."):
+                    traducir_textos_app(st.session_state.carpeta_trabajo)
+                    st.success("Textos traducidos.")
+        with c2:
+            st.write("🖼️ **Cambiar Icono**")
+            ico = st.file_uploader("Sube imagen (PNG/JPG)", type=["png", "jpg"])
+            if ico and st.button("Aplicar Icono"):
+                cambiar_icono_app(st.session_state.carpeta_trabajo, ico)
+                st.success("Icono actualizado.")
 
-    # BOTÓN FINAL
+    # PESTAÑA 5: EDITOR
+    with tab_edit:
+        fls = listar_archivos(st.session_state.carpeta_trabajo)
+        sel = st.selectbox("Archivo:", fls)
+        pth = os.path.join(st.session_state.carpeta_trabajo, sel)
+        with open(pth, "r", errors="ignore") as f: txt = f.read()
+        new = st_ace(value=txt, language="xml" if sel.endswith(".xml") else "java", theme="monokai", height=400)
+        if new != txt:
+            with open(pth, "w") as f: f.write(new)
+            st.toast("Guardado")
+
     st.divider()
-    if st.button("📦 Recompilar APK"):
-        with st.spinner("Construyendo..."):
-            nombre = "mod_final.apk"
-            exito, final = compilar_y_firmar(st.session_state.carpeta_trabajo, nombre)
-            if exito:
-                with open(final, "rb") as f:
-                    st.download_button("📥 DESCARGAR APK", f, file_name=nombre)
+    # Botón de compilación más robusto (usa aapt2)
+    if st.button("📦 COMPILAR APK MODIFICADA (PRO)"):
+        with st.spinner("Reconstruyendo con motor AAPT2..."):
+            nom = "app_mod_privacy.apk"
+            ok, res = compilar_y_firmar(st.session_state.carpeta_trabajo, nom)
+            if ok:
+                with open(res, "rb") as f:
+                    st.download_button("📥 DESCARGAR APK FINAL", f, file_name=nom)
                 st.balloons()
-
+            else:
+                st.error("Error al compilar. A veces eliminar ciertas librerías rompe la app.")
 else:
-    st.info("Sube un APK para empezar.")
+    st.info("Bienvenido al laboratorio ético. Sube un APK para comenzar.")
