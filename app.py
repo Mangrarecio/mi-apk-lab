@@ -8,125 +8,157 @@ from utils import (
     parche_bypass_root, eliminar_librerias_ads
 )
 
-# 1. Configuración base
+# Configuración de página ancha (Estilo IDE)
 st.set_page_config(page_title="APK Lab Expert", layout="wide", page_icon="🛡️")
 
-# 2. Estilo visual para que todo quepa
+# Estilo CSS para que parezca una herramienta profesional
 st.markdown("""
     <style>
+    .stApp { background-color: #0d1117; color: #c9d1d9; }
+    [data-testid="stSidebar"] { background-color: #161b22; border-right: 1px solid #30363d; }
     .stTabs [data-baseweb="tab-list"] { gap: 10px; }
     .stTabs [data-baseweb="tab"] {
-        padding: 10px 20px;
+        padding: 10px 15px;
         background-color: #161b22;
-        border-radius: 8px;
+        border-radius: 5px;
+        border: 1px solid #30363d;
     }
+    .stTabs [aria-selected="true"] { background-color: #238636 !important; border-color: #2ea043 !important; }
     </style>
     """, unsafe_allow_html=True)
 
 if 'carpeta_trabajo' not in st.session_state:
     st.session_state.carpeta_trabajo = None
 
-st.title("🛡️ APK Lab: Edición Profesional")
+st.title("🛡️ APK Lab Expert")
 
-# 3. Barra lateral para subir archivos
+# --- BARRA LATERAL (SUBIDA DE ARCHIVOS) ---
 with st.sidebar:
-    st.header("📂 Entrada")
-    archivo = st.file_uploader("Sube tu APK", type="apk")
-    if archivo and st.button("🚀 Iniciar Análisis"):
+    st.header("⚙️ Laboratorio")
+    archivo = st.file_uploader("Cargar APK para cirujía", type="apk")
+    if archivo and st.button("🚀 Iniciar Decompilación"):
         tmp = tempfile.mkdtemp()
-        ruta = os.path.join(tmp, "base.apk")
-        with open(ruta, "wb") as f: f.write(archivo.getbuffer())
-        with st.spinner("Decompilando..."):
+        ruta_apk = os.path.join(tmp, "base.apk")
+        with open(ruta_apk, "wb") as f: f.write(archivo.getbuffer())
+        with st.spinner("Desmontando APK... (Paciencia, esto es arte)"):
             salida = os.path.join(tmp, "work")
-            if decompilado := decompilar_apk(ruta, salida)[0]:
+            if decompilar_apk(ruta_apk, salida)[0]:
                 st.session_state.carpeta_trabajo = salida
-                st.success("¡Listo para editar!")
+                st.success("¡APK lista para modificar!")
 
-# 4. Panel de control (Solo aparece si hay una APK cargada)
+# --- CUERPO PRINCIPAL (SOLO SI HAY APK) ---
 if st.session_state.carpeta_trabajo:
     info = obtener_info_basica(st.session_state.carpeta_trabajo)
-    st.caption(f"📦 ID: {info['package']} | v.{info['version']}")
+    st.caption(f"📦 Paquete: `{info['package']}` | 🏷️ Versión: `{info['version']}`")
 
-    # Definición de las 5 pestañas (Esto es lo que faltaba antes)
+    # Las 5 Pestañas Maestras
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "🛡️ Privacidad", "🧠 Parches", "👥 Clonar", "🎨 Reskin", "📝 Editor"
+        "🛡️ Privacidad", "🧠 Parches", "👥 Clonación", "🎨 Reskin", "📝 Editor IDE"
     ])
 
     with tab1:
         st.subheader("Limpiador de Rastreadores")
-        if st.button("🧹 Eliminar Anuncios"):
+        if st.button("🧹 Eliminar Anuncios y Telemetría"):
             exito, cant = eliminar_librerias_ads(st.session_state.carpeta_trabajo)
-            st.success(f"Se eliminaron {cant} carpetas de publicidad.")
+            st.success(f"Se han extirpado {cant} módulos de publicidad.")
 
     with tab2:
-        st.subheader("Hacks de Comportamiento")
-        if st.button("📸 Habilitar Capturas"):
-            parche_permitir_capturas(st.session_state.carpeta_trabajo)
-            st.toast("Parche de capturas aplicado")
-        if st.button("🛡️ Bypass Root"):
-            parche_bypass_root(st.session_state.carpeta_trabajo)
-            st.toast("Parche Root aplicado")
+        st.subheader("Bypass de Seguridad")
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("📸 Habilitar Capturas de Pantalla"):
+                parche_permitir_capturas(st.session_state.carpeta_trabajo)
+                st.toast("Restricciones de pantalla eliminadas")
+        with c2:
+            if st.button("🛡️ Ocultar Root/Emulador"):
+                parche_bypass_root(st.session_state.carpeta_trabajo)
+                st.toast("Detección de seguridad anulada")
 
     with tab3:
-        st.subheader("Clonación")
-        nuevo_id = st.text_input("Nuevo Package ID:", value=info['package'] + ".clone")
-        if st.button("🧬 Clonar App"):
+        st.subheader("Duplicador de Identidad")
+        nuevo_id = st.text_input("Nuevo Package ID:", value=info['package'] + ".clon")
+        if st.button("🧬 Generar Clon"):
             if clonar_app(st.session_state.carpeta_trabajo, nuevo_id):
-                st.success("App clonada. Reiniciando info...")
+                st.success("Identidad cambiada. Ya puedes compilar.")
                 st.rerun()
 
     with tab4:
-        st.subheader("Personalización Visual")
-        if st.button("🌍 Traducir todo al Español"):
-            traducir_textos_app(st.session_state.carpeta_trabajo)
-            st.success("Traducción completada.")
+        st.subheader("Traducción y Estética")
+        if st.button("🌍 Traducir Interfaz a Español"):
+            with st.spinner("Traduciendo con IA..."):
+                traducir_textos_app(st.session_state.carpeta_trabajo)
+                st.success("¡App traducida!")
         
-        nuevo_ico = st.file_uploader("Nuevo Icono (PNG)", type=["png"])
-        if nuevo_ico and st.button("Aplicar Nuevo Icono"):
+        nuevo_ico = st.file_uploader("Subir nuevo icono (PNG)", type=["png"])
+        if nuevo_ico and st.button("🎨 Aplicar Icono"):
             cambiar_icono_app(st.session_state.carpeta_trabajo, nuevo_ico)
-            st.success("Icono cambiado.")
+            st.success("Imagen de icono reemplazada.")
 
+    # EL SANTO GRIAL: EXPLORADOR + EDITOR
     with tab5:
-        st.subheader("📝 Editor con Buscador Inteligente")
+        st.subheader("📂 Explorador de Proyecto")
         
-        # Obtenemos todos los archivos de la APK
-        lista = listar_archivos(st.session_state.carpeta_trabajo)
+        # 1. Obtener lista de archivos
+        archivos_totales = listar_archivos(st.session_state.carpeta_trabajo)
         
-        # El buscador que evita que tengas que hacer scroll eterno
-        busqueda = st.text_input("🔍 Escribe para buscar (ej: strings, manifest, colors):", "")
-        filtrados = [f for f in lista if busqueda.lower() in f.lower()]
-        
-        if filtrados:
-            archivo_sel = st.selectbox(f"Se encontraron {len(filtrados)} archivos:", filtrados)
-            ruta_final = os.path.join(st.session_state.carpeta_trabajo, archivo_sel)
+        # Buscador rápido arriba
+        busqueda = st.text_input("🔍 Buscar archivo por nombre...", "")
+        lista_filtrada = [f for f in archivos_totales if busqueda.lower() in f.lower()]
+
+        # 2. Layout de 2 columnas (1:4 de proporción)
+        col_tree, col_editor = st.columns([1, 3])
+
+        with col_tree:
+            st.write("📂 **Estructura**")
+            # Extraemos las carpetas de primer nivel
+            carpetas_raiz = sorted(list(set([f.split(os.sep)[0] for f in lista_filtrada])))
+            folder_sel = st.selectbox("Carpeta:", ["Todas"] + carpetas_raiz)
             
-            try:
-                with open(ruta_final, "r", errors="ignore") as f:
-                    contenido_actual = f.read()
+            # Filtramos por carpeta
+            if folder_sel != "Todas":
+                final_list = [f for f in lista_filtrada if f.startswith(folder_sel)]
+            else:
+                final_list = lista_filtrada
+
+            # Radio para seleccionar archivo como en un árbol real
+            archivo_elegido = st.radio("Archivos:", final_list, label_visibility="collapsed")
+
+        with col_editor:
+            if archivo_elegido:
+                ruta_full = os.path.join(st.session_state.carpeta_trabajo, archivo_elegido)
+                st.caption(f"📄 Editando: `{archivo_elegido}`")
                 
-                # Editor de código profesional
-                nuevo_cont = st_ace(
-                    value=contenido_actual,
-                    language="xml" if archivo_sel.endswith(".xml") else "java",
-                    theme="monokai",
-                    height=400,
-                    key=f"editor_{archivo_sel}"
-                )
-                
-                if nuevo_cont != contenido_actual:
-                    with open(ruta_final, "w", errors="ignore") as f:
-                        f.write(nuevo_cont)
-                    st.toast("✅ Cambios guardados")
-            except Exception as e:
-                st.error("No se puede editar este tipo de archivo.")
+                try:
+                    with open(ruta_full, "r", errors="ignore") as f:
+                        codigo_inicial = f.read()
+                    
+                    # Determinar lenguaje para el resaltado
+                    ext = archivo_elegido.split('.')[-1]
+                    lang_map = {"xml": "xml", "smali": "java", "json": "json", "yml": "yaml"}
+                    
+                    nuevo_codigo = st_ace(
+                        value=codigo_inicial,
+                        language=lang_map.get(ext, "text"),
+                        theme="monokai",
+                        height=500,
+                        key=f"editor_{archivo_elegido}"
+                    )
+                    
+                    if nuevo_codigo != codigo_inicial:
+                        with open(ruta_full, "w", errors="ignore") as f:
+                            f.write(nuevo_codigo)
+                        st.toast("✅ Archivo guardado")
+                except:
+                    st.error("Este archivo es binario y no se puede editar aquí.")
 
     st.divider()
-    if st.button("📦 COMPILAR Y FIRMAR APK FINAL"):
-        with st.spinner("Construyendo..."):
-            nombre_final = "app_modificada.apk"
+    # Botón de construcción final
+    if st.button("📦 COMPILAR Y FIRMAR APK"):
+        with st.spinner("Reconstruyendo el binario..."):
+            nombre_final = "modificada_por_mi.apk"
             if compilar_y_firmar(st.session_state.carpeta_trabajo, nombre_final)[0]:
                 with open(nombre_final, "rb") as f:
-                    st.download_button("📥 DESCARGAR APK", f, file_name=nombre_final)
+                    st.download_button("📥 DESCARGAR RESULTADO", f, file_name=nombre_final)
                 st.balloons()
 else:
-    st.info("Sube una APK para activar el laboratorio.")
+    st.info("Sube una APK en el panel lateral para desplegar las herramientas.")
